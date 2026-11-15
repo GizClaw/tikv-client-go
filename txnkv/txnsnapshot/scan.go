@@ -261,8 +261,13 @@ func (s *Scanner) getData(bo *retry.Backoffer) error {
 		if s.snapshot.mu.resourceGroupTag == nil && s.snapshot.mu.resourceGroupTagger != nil {
 			s.snapshot.mu.resourceGroupTagger(req)
 		}
+		matchStoreLabels := s.snapshot.mu.matchStoreLabels
 		s.snapshot.mu.RUnlock()
-		resp, _, err := sender.SendReq(bo, req, loc.Region, client.ReadTimeoutMedium)
+		var opts []locate.StoreSelectorOption
+		if len(matchStoreLabels) > 0 {
+			opts = append(opts, locate.WithMatchLabels(matchStoreLabels))
+		}
+		resp, _, _, err := sender.SendReqCtx(bo, req, loc.Region, client.ReadTimeoutMedium, tikvrpc.TiKV, opts...)
 		if err != nil {
 			return err
 		}
